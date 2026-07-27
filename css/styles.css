@@ -79,6 +79,26 @@ svg:active {
   filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.7));
 }
 
+/* Brief "impact" flash on the country a dart throw lands on (see
+   js/globe.js pulseFeature). Runs on top of .selected. */
+.land.dart-hit {
+  animation: dart-pulse 0.6s ease-out 2;
+}
+@keyframes dart-pulse {
+  0% {
+    stroke-width: 2px;
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.7));
+  }
+  50% {
+    stroke-width: 4px;
+    filter: drop-shadow(0 0 9px rgba(255, 255, 255, 0.95));
+  }
+  100% {
+    stroke-width: 2px;
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.7));
+  }
+}
+
 /* Hover effects only for devices with a real pointer (skip touch/mobile) */
 @media (hover: hover) and (pointer: fine) {
   .land:hover {
@@ -143,6 +163,38 @@ svg:active {
 #controls button:hover {
   border-color: var(--panel-accent);
   background: rgba(255, 255, 255, 0.06);
+}
+
+#dart-mode-btn {
+  position: absolute;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  right: max(20px, env(safe-area-inset-right));
+  z-index: 10;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 50%;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+#dart-mode-btn:hover {
+  border-color: var(--panel-accent);
+  transform: scale(1.06);
+}
+#dart-mode-btn:active {
+  transform: scale(0.94);
+}
+#dart-mode-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
 }
 
 #loading {
