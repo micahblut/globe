@@ -1,0 +1,245 @@
+
+:root {
+  /* Page chrome (outside the globe) */
+  --bg: #0b0d12;
+  --graticule: rgba(255, 255, 255, 0.16);
+  --label: #aab2c0;
+
+  /* Globe */
+  --color-ocean: #3d7fb3;             /* ocean / sphere fill */
+  --color-land-unwatched: #e8dcc0;    /* beige — default, not-yet-watched countries */
+  --color-land-watched: #2f9e44;      /* bold green — watched/completed countries */
+  --color-land-hover-unwatched: #f2ead6; /* lighter beige on hover */
+  --color-land-hover-watched: #3fbf57;   /* lighter green on hover */
+  --color-land-border: #5c6b57;       /* country outline */
+  --color-land-border-hover: #2f3a2c; /* country outline on hover */
+  --color-selection-ring: #ffffff;    /* outline for the tap-selected country (touch) */
+
+  /* UI overlay panel */
+  --panel-bg: rgba(15, 17, 22, 0.82);
+  --panel-border: rgba(255, 255, 255, 0.12);
+  --panel-text: #eef1f6;
+  --panel-accent: #2f9e44;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+#stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+svg {
+  cursor: grab;
+  touch-action: none;
+}
+svg:active {
+  cursor: grabbing;
+}
+
+.sphere {
+  fill: var(--color-ocean);
+}
+
+.graticule {
+  fill: none;
+  stroke: var(--graticule);
+  stroke-width: 0.5px;
+}
+
+.land {
+  fill: var(--color-land-unwatched);
+  stroke: var(--color-land-border);
+  stroke-width: 0.6px;
+  stroke-linejoin: round;
+  cursor: pointer;
+  transition: fill 0.12s ease;
+}
+
+.land.watched {
+  fill: var(--color-land-watched);
+}
+
+/* Tap-to-select ring (mainly touch — see js/globe.js); works alongside
+   .watched, which controls fill rather than stroke. */
+.land.selected {
+  stroke: var(--color-selection-ring);
+  stroke-width: 2px;
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.7));
+}
+
+/* Hover effects only for devices with a real pointer (skip touch/mobile) */
+@media (hover: hover) and (pointer: fine) {
+  .land:hover {
+    fill: var(--color-land-hover-unwatched);
+    stroke: var(--color-land-border-hover);
+  }
+  .land.watched:hover {
+    fill: var(--color-land-hover-watched);
+  }
+}
+
+#hint {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--label);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  pointer-events: none;
+  opacity: 0.8;
+  transition: opacity 0.4s ease;
+}
+
+#tooltip {
+  position: absolute;
+  padding: 4px 9px;
+  background: rgba(18, 21, 28, 0.92);
+  border: 1px solid var(--panel-border);
+  color: var(--panel-text);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  border-radius: 3px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+  z-index: 20;
+}
+
+#controls {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
+}
+#controls button {
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--panel-text);
+  font-size: 15px;
+  border-radius: 3px;
+  cursor: pointer;
+  line-height: 1;
+}
+#controls button:hover {
+  border-color: var(--panel-accent);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+#loading {
+  position: absolute;
+  color: var(--label);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  z-index: 5;
+}
+
+/* ==========================================================================
+   Progress / controls overlay panel
+   ========================================================================== */
+#panel {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 10;
+  width: 220px;
+  padding: 16px 18px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  color: var(--panel-text);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+#panel-title {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+#progress-line {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--label);
+}
+
+#progress-count {
+  color: var(--panel-accent);
+  font-weight: 700;
+}
+
+#panel-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#panel-actions button {
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--panel-text);
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+#panel-actions button:hover {
+  border-color: var(--panel-accent);
+  background: rgba(47, 158, 68, 0.12);
+}
+
+#panel-help {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--label);
+  line-height: 1.4;
+}
+
+/* Touch devices (and narrow screens): center the panel at the top instead of
+   pinning it to a corner, so it doesn't crowd the thumb-reachable edges of
+   the globe below it. */
+@media (pointer: coarse), (max-width: 560px) {
+  #panel {
+    top: max(12px, env(safe-area-inset-top));
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: auto;
+    max-width: 90vw;
+    padding: 10px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  #panel-title {
+    font-size: 13px;
+  }
+  #panel-actions {
+    flex-direction: row;
+  }
+}
