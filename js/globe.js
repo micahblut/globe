@@ -140,13 +140,16 @@
     }
 
     // Shared driver behind centerOnFeature and throwDartAt: rotates from the
-    // current orientation to [targetLambda, targetPhi]. `extraSpins` adds
-    // whole extra revolutions (sign = direction) on top of the shortest path,
-    // which is what makes the dart-mode throw look like a fast spin that
-    // decelerates into place rather than a plain pan.
+    // current orientation to [targetLambda, targetPhi], optionally zooming to
+    // `targetScale` at the same time. `extraSpins` adds whole extra
+    // revolutions (sign = direction) on top of the shortest path, which is
+    // what makes the dart-mode throw look like a fast spin that decelerates
+    // into place rather than a plain pan.
     function animateRotationTo(targetLambda, targetPhi, options) {
-      const { duration, extraSpins = 0, easing = easeCubicOut, onDone } = options;
+      const { duration, extraSpins = 0, easing = easeCubicOut, targetScale, onDone } = options;
       const [startLambda, startPhi] = projection.rotate();
+      const startScale = scale;
+      const scaleDelta = targetScale == null ? 0 : targetScale - startScale;
 
       // Take the shortest path around the sphere rather than always going east.
       const lambdaDelta =
@@ -160,6 +163,10 @@
         const t = Math.min(1, (now - start) / duration);
         const eased = easing(t);
         projection.rotate([startLambda + lambdaDelta * eased, startPhi + phiDelta * eased]);
+        if (scaleDelta !== 0) {
+          scale = startScale + scaleDelta * eased;
+          projection.scale(scale);
+        }
         draw();
         if (t < 1) {
           centerAnimationFrame = requestAnimationFrame(step);
@@ -189,6 +196,15 @@
       });
     }
 
+    // A closer-in scale for landing on the dart target: a modest bump over
+    // wherever the user was already zoomed to, capped at the same maxScale
+    // the manual zoom-in button already respects (never zooms out, and never
+    // zooms in further than the app already allows elsewhere).
+    function dartLandingScale() {
+      const DART_ZOOM_FACTOR = 1.35;
+      return Math.min(maxScale, scale * DART_ZOOM_FACTOR);
+    }
+
     function throwDartAt(d) {
       const [lon, lat] = d3.geoCentroid(d);
       const spinCount = DART_MIN_SPINS + Math.floor(Math.random() * (DART_MAX_SPINS - DART_MIN_SPINS + 1));
@@ -203,6 +219,7 @@
           duration: DART_SPIN_MS,
           extraSpins: spinCount * spinDirection,
           easing: easeQuintOut,
+          targetScale: dartLandingScale(),
           onDone: () => {
             selectFeature(d);
             pulseFeature(d);
