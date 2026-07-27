@@ -10,6 +10,9 @@
   const CENTER_ANIMATION_MS = 700;
   const AUTO_ROTATE_RESUME_MS = 5000; // resume auto-rotation after this long idle, if nothing is selected
   const ZOOM_TICK_FACTOR = 1.15; // scale multiplier per zoom-in click/tick
+  const DART_SPIN_MS = 2000; // total duration of the dart-mode spin-and-land animation
+  const DART_MIN_SPINS = 3; // extra full rotations layered on top of the trip to the target
+  const DART_MAX_SPINS = 5;
 
   function createGlobe({
     stage,
@@ -132,30 +135,93 @@
       return 1 - Math.pow(1 - t, 3);
     }
 
-    function centerOnFeature(d) {
-      const [lon, lat] = d3.geoCentroid(d);
+    function easeQuintOut(t) {
+      return 1 - Math.pow(1 - t, 5);
+    }
+
+    // Shared driver behind centerOnFeature and throwDartAt: rotates from the
+    // current orientation to [targetLambda, targetPhi]. `extraSpins` adds
+    // whole extra revolutions (sign = direction) on top of the shortest path,
+    // which is what makes the dart-mode throw look like a fast spin that
+    // decelerates into place rather than a plain pan.
+    function animateRotationTo(targetLambda, targetPhi, options) {
+      const { duration, extraSpins = 0, easing = easeCubicOut, onDone } = options;
       const [startLambda, startPhi] = projection.rotate();
-      const targetLambda = -lon;
-      const targetPhi = -lat;
 
       // Take the shortest path around the sphere rather than always going east.
-      const lambdaDelta = ((targetLambda - startLambda + 180) % 360 + 360) % 360 - 180;
+      const lambdaDelta =
+        (((targetLambda - startLambda + 180) % 360 + 360) % 360 - 180) + extraSpins * 360;
+      const phiDelta = targetPhi - startPhi;
 
       cancelCenterAnimation();
       const start = performance.now();
 
       function step(now) {
-        const t = Math.min(1, (now - start) / CENTER_ANIMATION_MS);
-        const eased = easeCubicOut(t);
-        projection.rotate([
-          startLambda + lambdaDelta * eased,
-          startPhi + (targetPhi - startPhi) * eased,
-        ]);
+        const t = Math.min(1, (now - start) / duration);
+        const eased = easing(t);
+        projection.rotate([startLambda + lambdaDelta * eased, startPhi + phiDelta * eased]);
         draw();
-        centerAnimationFrame = t < 1 ? requestAnimationFrame(step) : null;
+        if (t < 1) {
+          centerAnimationFrame = requestAnimationFrame(step);
+        } else {
+          centerAnimationFrame = null;
+          if (onDone) onDone();
+        }
       }
 
       centerAnimationFrame = requestAnimationFrame(step);
+    }
+
+    function centerOnFeature(d) {
+      const [lon, lat] = d3.geoCentroid(d);
+      animateRotationTo(-lon, -lat, { duration: CENTER_ANIMATION_MS, easing: easeCubicOut });
+    }
+
+    // --- Dart mode: fast spin that lands on a random unwatched country ---
+
+    function pulseFeature(d) {
+      const sel = countriesGroup.selectAll("path.land").filter((c) => c === d);
+      sel.classed("dart-hit", false);
+      const node = sel.node();
+      if (node) node.getBoundingClientRect(); // force reflow so the animation restarts
+      sel.classed("dart-hit", true).on("animationend", function () {
+        d3.select(this).classed("dart-hit", false);
+      });
+    }
+
+    function throwDartAt(d) {
+      const [lon, lat] = d3.geoCentroid(d);
+      const spinCount = DART_MIN_SPINS + Math.floor(Math.random() * (DART_MAX_SPINS - DART_MIN_SPINS + 1));
+      const spinDirection = Math.random() < 0.5 ? -1 : 1;
+
+      rotationVelocity = [0, 0];
+      cancelCenterAnimation();
+      stopAutoRotate();
+
+      return new Promise((resolve) => {
+        animateRotationTo(-lon, -lat, {
+          duration: DART_SPIN_MS,
+          extraSpins: spinCount * spinDirection,
+          easing: easeQuintOut,
+          onDone: () => {
+            selectFeature(d);
+            pulseFeature(d);
+            if (onSelectCountry) onSelectCountry(d);
+            resolve(d);
+          },
+        });
+      });
+    }
+
+    // Picks a random not-yet-watched country and spins to it. Resolves with
+    // the chosen feature, or null if every country is already watched (or
+    // the map hasn't loaded yet).
+    function throwDart() {
+      if (!countries) return Promise.resolve(null);
+      const candidates = countries.filter((d) => !isWatched(d.id));
+      if (!candidates.length) return Promise.resolve(null);
+      const target = candidates[Math.floor(Math.random() * candidates.length)];
+      return throwDartAt(target);
     }
 
     // --- Drag to rotate, with tap/long-press/click detection ---
@@ -339,6 +405,7 @@
     return {
       setCountries,
       refreshWatched,
+      throwDart,
       zoomIn() {
         stopAutoRotate();
         setScale(scale * ZOOM_TICK_FACTOR);

@@ -13,6 +13,7 @@
   const importInput = document.getElementById("import-input");
   const zoomInBtn = document.getElementById("zoom-in");
   const zoomOutBtn = document.getElementById("zoom-out");
+  const dartModeBtn = document.getElementById("dart-mode-btn");
 
   // Coarse-pointer devices (touch) get a two-step gesture (tap to select,
   // long-press to toggle) since there's no hover to preview a country first.
@@ -45,9 +46,13 @@
     isWatched,
     initialZoomTicks: isTouchDevice ? 2 : 0,
     onSelectCountry(d) {
-      panelHelp.textContent = d
+      if (!d) {
+        panelHelp.textContent = DEFAULT_HELP_TEXT;
+        return;
+      }
+      panelHelp.textContent = isTouchDevice
         ? `${nameOf(d)} selected — long-press to mark watched.`
-        : DEFAULT_HELP_TEXT;
+        : `${nameOf(d)} selected — click it to mark watched.`;
     },
     onToggleCountry(d) {
       const id = String(d.id);
@@ -68,6 +73,16 @@
 
   zoomInBtn.addEventListener("click", () => globeApi.zoomIn());
   zoomOutBtn.addEventListener("click", () => globeApi.zoomOut());
+
+  dartModeBtn.addEventListener("click", () => {
+    dartModeBtn.disabled = true;
+    globeApi.throwDart().then((target) => {
+      dartModeBtn.disabled = false;
+      if (!target) {
+        panelHelp.textContent = "Every country is already watched — nothing left to dart!";
+      }
+    });
+  });
 
   exportBtn.addEventListener("click", () => {
     CountryStorage.exportProgress(watchedIds, countryNamesById);
@@ -116,6 +131,7 @@
     loading.style.display = "none";
     globeApi.setCountries(countries);
     updateProgress();
+    dartModeBtn.disabled = false;
   } else {
     loading.textContent = "Could not load world data. Is data/countries-110m.js missing?";
     console.error("window.WORLD_ATLAS_110M was not set — check that data/countries-110m.js loaded.");
