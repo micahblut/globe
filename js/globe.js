@@ -196,6 +196,7 @@
       });
     }
 
+<<<<<<< HEAD
     // A closer-in scale for landing on the dart target: a modest bump over
     // wherever the user was already zoomed to, capped at the same maxScale
     // the manual zoom-in button already respects (never zooms out, and never
@@ -203,6 +204,17 @@
     function dartLandingScale() {
       const DART_ZOOM_FACTOR = 1.35;
       return Math.min(maxScale, scale * DART_ZOOM_FACTOR);
+=======
+    // A closer-in scale for landing on the dart target, capped so the sphere
+    // never grows past what fits on screen (a small margin is kept so its
+    // edge doesn't touch the frame) — i.e. it zooms in without ever pushing
+    // the globe outside the viewport. Never zooms back out from wherever the
+    // user had already zoomed to.
+    function dartLandingScale() {
+      const margin = 12;
+      const fitScale = Math.min(width, height) / 2 - margin;
+      return Math.min(maxScale, Math.max(scale, fitScale));
+>>>>>>> d76cc146350bb85db40b3098b0b689dde62bd8e5
     }
 
     function throwDartAt(d) {
