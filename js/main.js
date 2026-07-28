@@ -123,22 +123,12 @@
   // storage key) and a `properties.name` (used for tooltip/export labels).
   const world = window.WORLD_ATLAS_110M;
 
-    if (world) {
-      const worldCountries = topojson.feature(world, world.objects.countries).features;
-      const largeCountryTopologies =
-        window.LARGE_COUNTRY_REGIONS_TOPOLOGIES || {};
-      renderedPlaces = MapRegions.applyCountrySubdivisions(worldCountries, {
-        japan: window.JAPAN_REGIONS_TOPOLOGY,
-        unitedStates: largeCountryTopologies.unitedStates,
-        china: largeCountryTopologies.china,
-        india: largeCountryTopologies.india,
-  brazil: largeCountryTopologies.brazil,
-  russia: largeCountryTopologies.russia,
-  canada: largeCountryTopologies.canada,
-  australia: largeCountryTopologies.australia,
-  indonesia: largeCountryTopologies.indonesia,
-  unitedKingdom: largeCountryTopologies.unitedKingdom,
-});
+  if (world) {
+    const worldCountries = topojson.feature(world, world.objects.countries).features;
+    renderedPlaces = MapRegions.applyCountrySubdivisions(
+      worldCountries,
+      window.COUNTRY_REGIONS_TOPOLOGIES
+    );
 
     // Old saves represented subdivided countries with one id. Once split,
     // inherit that completion across their regions so updates never erase

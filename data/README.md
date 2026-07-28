@@ -5,18 +5,13 @@
 JS file (`window.WORLD_ATLAS_110M = {...}`) instead of a `.json` file so it
 loads via a `<script>` tag with no `fetch()` call.
 
-`japan-regions.js` contains eight prepared Japan regions, embedded as
-`window.JAPAN_REGIONS_TOPOLOGY`. The source's 47 prefectures were merged
-ahead of time into Hokkaido, Tohoku, Kanto, Chubu, Kansai, Chugoku, Shikoku,
-and Kyushu/Okinawa. The browser therefore decodes only the eight shapes it
-renders instead of merging prefectures at runtime. The topology is aggressively
-simplified for globe rendering, from 7,473 source-topology arc points to 976.
+`country-regions.js` contains ten separately quantized and simplified
+TopoJSON objects under `window.COUNTRY_REGIONS_TOPOLOGIES`. State, province,
+and prefecture boundaries are merged ahead of time, so the browser decodes
+only the final tracking shapes:
 
-`large-country-regions.js` contains nine separately quantized and simplified
-TopoJSON objects under `window.LARGE_COUNTRY_REGIONS_TOPOLOGIES`. State and
-province boundaries are merged ahead of time, so the browser decodes only the
-final tracking shapes:
-
+- Japan: the eight customary regions merged from its 47 prefectures (8
+  targets, 976 arc points, simplified from 7,473 source-topology arc points).
 - United States: eight Census Divisions plus Pacific Coast, Alaska, and Hawaii
   (11 targets, 1,601 arc points).
 - China: the six customary major geographical regions (6 targets, 825 arc
@@ -110,9 +105,7 @@ To refresh Japan, download Natural Earth's 1:10m Admin 1 shapefile and retain
 the 47 features identified by `JP-01` through `JP-47`. Merge those prefectures
 into the eight customary regions listed above, convert the resulting feature
 collection to TopoJSON quantized to `1e4`, run `topojson-simplify` with
-spherical triangle weighting at quantile `0.1`, requantize to `1e4`, and
-embed it as `window.JAPAN_REGIONS_TOPOLOGY = <json>;` in
-`japan-regions.js`.
+spherical triangle weighting at quantile `0.1`, and requantize to `1e4`.
 
 To refresh the other prepared regions, use the same Natural Earth Admin 1
 source and merge the state/province ISO codes into the memberships described
@@ -120,7 +113,8 @@ above. Build an independent TopoJSON object for each country, initially
 quantized to `1e4`; simplify with spherical triangle weighting at quantiles
 `0.02` for the United States, `0.03` for China, and `0.05` for India and
 Brazil, `0.01` for Russia, `0.02` for Canada, Australia, and Indonesia, and
-`0.03` for the United Kingdom; then requantize each to `1e4`. Embed the nine
-topologies under
-`window.LARGE_COUNTRY_REGIONS_TOPOLOGIES` in
-`large-country-regions.js`.
+`0.03` for the United Kingdom; then requantize each to `1e4`.
+
+Embed all ten topologies together as
+`window.COUNTRY_REGIONS_TOPOLOGIES = { japan: <json>, unitedStates: <json>, ... };`
+in `country-regions.js`.

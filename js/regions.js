@@ -13,465 +13,175 @@
   const INDONESIA_COUNTRY_ID = "360";
   const UNITED_KINGDOM_COUNTRY_ID = "826";
 
+  // A region's id and display name are always derived the same way, so
+  // callers only ever supply the two things that actually vary: the
+  // region's own key/name and (rarely) extra properties to carry through.
+  function regionFactory(countryId, countryName) {
+    return function (regionKey, regionName, extraProperties) {
+      return {
+        id: `${countryId}-${regionKey}`,
+        name: `${countryName} — ${regionName}`,
+        regionName,
+        regionKey,
+        properties: extraProperties,
+      };
+    };
+  }
+
   // The boundary asset already contains these eight customary regions,
   // prepared from Japan's 47 prefectures.
+  const japanRegion = regionFactory(JAPAN_COUNTRY_ID, "Japan");
   const JAPAN_REGIONS = [
-    {
-      id: "392-HOKKAIDO",
-      name: "Japan — Hokkaido",
-      regionName: "Hokkaido",
-      regionKey: "HOKKAIDO",
-    },
-    {
-      id: "392-TOHOKU",
-      name: "Japan — Tohoku",
-      regionName: "Tohoku",
-      regionKey: "TOHOKU",
-    },
-    {
-      id: "392-KANTO",
-      name: "Japan — Kanto",
-      regionName: "Kanto",
-      regionKey: "KANTO",
-    },
-    {
-      id: "392-CHUBU",
-      name: "Japan — Chubu",
-      regionName: "Chubu",
-      regionKey: "CHUBU",
-    },
-    {
-      id: "392-KANSAI",
-      name: "Japan — Kansai",
-      regionName: "Kansai",
-      regionKey: "KANSAI",
-    },
-    {
-      id: "392-CHUGOKU",
-      name: "Japan — Chugoku",
-      regionName: "Chugoku",
-      regionKey: "CHUGOKU",
-    },
-    {
-      id: "392-SHIKOKU",
-      name: "Japan — Shikoku",
-      regionName: "Shikoku",
-      regionKey: "SHIKOKU",
-    },
-    {
-      id: "392-KYUSHU-OKINAWA",
-      name: "Japan — Kyushu/Okinawa",
-      regionName: "Kyushu/Okinawa",
-      regionKey: "KYUSHU-OKINAWA",
-    },
+    japanRegion("HOKKAIDO", "Hokkaido"),
+    japanRegion("TOHOKU", "Tohoku"),
+    japanRegion("KANTO", "Kanto"),
+    japanRegion("CHUBU", "Chubu"),
+    japanRegion("KANSAI", "Kansai"),
+    japanRegion("CHUGOKU", "Chugoku"),
+    japanRegion("SHIKOKU", "Shikoku"),
+    japanRegion("KYUSHU-OKINAWA", "Kyushu/Okinawa"),
   ];
 
   // The first eight US targets are Census Divisions. The official Pacific
   // Division is represented by three tracker targets so Alaska and Hawaii
   // can be watched independently.
+  const usRegion = regionFactory(UNITED_STATES_COUNTRY_ID, "USA");
   const US_TRACKING_REGIONS = [
-    {
-      id: "840-NEW-ENGLAND",
-      name: "USA — New England",
-      regionName: "New England",
-      regionKey: "NEW-ENGLAND",
-      properties: { censusRegion: "Northeast", censusDivision: "New England" },
-    },
-    {
-      id: "840-MIDDLE-ATLANTIC",
-      name: "USA — Middle Atlantic",
-      regionName: "Middle Atlantic",
-      regionKey: "MIDDLE-ATLANTIC",
-      properties: { censusRegion: "Northeast", censusDivision: "Middle Atlantic" },
-    },
-    {
-      id: "840-EAST-NORTH-CENTRAL",
-      name: "USA — East North Central",
-      regionName: "East North Central",
-      regionKey: "EAST-NORTH-CENTRAL",
-      properties: { censusRegion: "Midwest", censusDivision: "East North Central" },
-    },
-    {
-      id: "840-WEST-NORTH-CENTRAL",
-      name: "USA — West North Central",
-      regionName: "West North Central",
-      regionKey: "WEST-NORTH-CENTRAL",
-      properties: { censusRegion: "Midwest", censusDivision: "West North Central" },
-    },
-    {
-      id: "840-SOUTH-ATLANTIC",
-      name: "USA — South Atlantic",
-      regionName: "South Atlantic",
-      regionKey: "SOUTH-ATLANTIC",
-      properties: { censusRegion: "South", censusDivision: "South Atlantic" },
-    },
-    {
-      id: "840-EAST-SOUTH-CENTRAL",
-      name: "USA — East South Central",
-      regionName: "East South Central",
-      regionKey: "EAST-SOUTH-CENTRAL",
-      properties: { censusRegion: "South", censusDivision: "East South Central" },
-    },
-    {
-      id: "840-WEST-SOUTH-CENTRAL",
-      name: "USA — West South Central",
-      regionName: "West South Central",
-      regionKey: "WEST-SOUTH-CENTRAL",
-      properties: { censusRegion: "South", censusDivision: "West South Central" },
-    },
-    {
-      id: "840-MOUNTAIN",
-      name: "USA — Mountain",
-      regionName: "Mountain",
-      regionKey: "MOUNTAIN",
-      properties: { censusRegion: "West", censusDivision: "Mountain" },
-    },
-    {
-      id: "840-PACIFIC-COAST",
-      name: "USA — Pacific Coast",
-      regionName: "Pacific Coast",
-      regionKey: "PACIFIC-COAST",
-      properties: { censusRegion: "West", censusDivision: "Pacific" },
-    },
-    {
-      id: "840-ALASKA",
-      name: "USA — Alaska",
-      regionName: "Alaska",
-      regionKey: "ALASKA",
-      properties: { censusRegion: "West", censusDivision: "Pacific" },
-    },
-    {
-      id: "840-HAWAII",
-      name: "USA — Hawaii",
-      regionName: "Hawaii",
-      regionKey: "HAWAII",
-      properties: { censusRegion: "West", censusDivision: "Pacific" },
-    },
+    usRegion("NEW-ENGLAND", "New England", {
+      censusRegion: "Northeast",
+      censusDivision: "New England",
+    }),
+    usRegion("MIDDLE-ATLANTIC", "Middle Atlantic", {
+      censusRegion: "Northeast",
+      censusDivision: "Middle Atlantic",
+    }),
+    usRegion("EAST-NORTH-CENTRAL", "East North Central", {
+      censusRegion: "Midwest",
+      censusDivision: "East North Central",
+    }),
+    usRegion("WEST-NORTH-CENTRAL", "West North Central", {
+      censusRegion: "Midwest",
+      censusDivision: "West North Central",
+    }),
+    usRegion("SOUTH-ATLANTIC", "South Atlantic", {
+      censusRegion: "South",
+      censusDivision: "South Atlantic",
+    }),
+    usRegion("EAST-SOUTH-CENTRAL", "East South Central", {
+      censusRegion: "South",
+      censusDivision: "East South Central",
+    }),
+    usRegion("WEST-SOUTH-CENTRAL", "West South Central", {
+      censusRegion: "South",
+      censusDivision: "West South Central",
+    }),
+    usRegion("MOUNTAIN", "Mountain", {
+      censusRegion: "West",
+      censusDivision: "Mountain",
+    }),
+    usRegion("PACIFIC-COAST", "Pacific Coast", {
+      censusRegion: "West",
+      censusDivision: "Pacific",
+    }),
+    usRegion("ALASKA", "Alaska", {
+      censusRegion: "West",
+      censusDivision: "Pacific",
+    }),
+    usRegion("HAWAII", "Hawaii", {
+      censusRegion: "West",
+      censusDivision: "Pacific",
+    }),
+  ];
+
+  const chinaRegion = regionFactory(CHINA_COUNTRY_ID, "China");
+  const CHINA_REGIONS = [
+    chinaRegion("NORTH", "North China"),
+    chinaRegion("NORTHEAST", "Northeast China"),
+    chinaRegion("EAST", "East China"),
+    chinaRegion("SOUTH-CENTRAL", "South Central China"),
+    chinaRegion("SOUTHWEST", "Southwest China"),
+    chinaRegion("NORTHWEST", "Northwest China"),
+  ];
+
+  // India has five Zonal Councils. Its eight northeastern states are covered
+  // by the separate North Eastern Council, included here as a sixth target.
+  const indiaRegion = regionFactory(INDIA_COUNTRY_ID, "India");
+  const INDIA_REGIONS = [
+    indiaRegion("NORTHERN", "Northern Zonal Council"),
+    indiaRegion("CENTRAL", "Central Zonal Council"),
+    indiaRegion("EASTERN", "Eastern Zonal Council"),
+    indiaRegion("WESTERN", "Western Zonal Council"),
+    indiaRegion("SOUTHERN", "Southern Zonal Council"),
+    indiaRegion("NORTH-EASTERN", "North Eastern Council"),
+  ];
+
+  const brazilRegion = regionFactory(BRAZIL_COUNTRY_ID, "Brazil");
+  const BRAZIL_REGIONS = [
+    brazilRegion("NORTH", "North"),
+    brazilRegion("NORTHEAST", "Northeast"),
+    brazilRegion("CENTRAL-WEST", "Central-West"),
+    brazilRegion("SOUTHEAST", "Southeast"),
+    brazilRegion("SOUTH", "South"),
+  ];
+
+  const russiaRegion = regionFactory(RUSSIA_COUNTRY_ID, "Russia");
+  const RUSSIA_REGIONS = [
+    russiaRegion("CENTRAL", "Central Federal District"),
+    russiaRegion("NORTHWESTERN", "Northwestern Federal District"),
+    russiaRegion("SOUTHERN", "Southern Federal District"),
+    russiaRegion("NORTH-CAUCASIAN", "North Caucasian Federal District"),
+    russiaRegion("VOLGA", "Volga Federal District"),
+    russiaRegion("URAL", "Ural Federal District"),
+    russiaRegion("SIBERIAN", "Siberian Federal District"),
+    russiaRegion("FAR-EASTERN", "Far Eastern Federal District"),
+  ];
+
+  const canadaRegion = regionFactory(CANADA_COUNTRY_ID, "Canada");
+  const CANADA_REGIONS = [
+    canadaRegion("ATLANTIC", "Atlantic Provinces"),
+    canadaRegion("CENTRAL", "Central Canada"),
+    canadaRegion("PRAIRIES", "Prairie Provinces"),
+    canadaRegion("WEST-COAST", "West Coast"),
+    canadaRegion("NORTHERN", "Northern Territories"),
+  ];
+
+  const australiaRegion = regionFactory(AUSTRALIA_COUNTRY_ID, "Australia");
+  const AUSTRALIA_REGIONS = [
+    australiaRegion("NEW-SOUTH-WALES", "New South Wales"),
+    australiaRegion("VICTORIA", "Victoria"),
+    australiaRegion("QUEENSLAND", "Queensland"),
+    australiaRegion("SOUTH-AUSTRALIA", "South Australia"),
+    australiaRegion("WESTERN-AUSTRALIA", "Western Australia"),
+    australiaRegion("TASMANIA", "Tasmania"),
+    australiaRegion("NORTHERN-TERRITORY", "Northern Territory"),
+    australiaRegion(
+      "AUSTRALIAN-CAPITAL-TERRITORY",
+      "Australian Capital Territory"
+    ),
+  ];
+
+  const indonesiaRegion = regionFactory(INDONESIA_COUNTRY_ID, "Indonesia");
+  const INDONESIA_REGIONS = [
+    indonesiaRegion("SUMATRA", "Sumatra"),
+    indonesiaRegion("JAVA", "Java"),
+    indonesiaRegion("KALIMANTAN", "Kalimantan"),
+    indonesiaRegion("SULAWESI", "Sulawesi"),
+    indonesiaRegion("LESSER-SUNDA", "Lesser Sunda Islands"),
+    indonesiaRegion("MALUKU", "Maluku Islands"),
+    indonesiaRegion("PAPUA", "Papua"),
+  ];
+
+  const ukRegion = regionFactory(UNITED_KINGDOM_COUNTRY_ID, "United Kingdom");
+  const UNITED_KINGDOM_REGIONS = [
+    ukRegion("ENGLAND", "England"),
+    ukRegion("SCOTLAND", "Scotland"),
+    ukRegion("WALES", "Wales"),
+    ukRegion("NORTHERN-IRELAND", "Northern Ireland"),
   ];
 
   const US_PACIFIC_TRACKING_REGIONS = US_TRACKING_REGIONS.filter((region) =>
     ["PACIFIC-COAST", "ALASKA", "HAWAII"].includes(region.regionKey)
   );
-
-  const CHINA_REGIONS = [
-    {
-      id: "156-NORTH",
-      name: "China — North China",
-      regionName: "North China",
-      regionKey: "NORTH",
-    },
-    {
-      id: "156-NORTHEAST",
-      name: "China — Northeast China",
-      regionName: "Northeast China",
-      regionKey: "NORTHEAST",
-    },
-    {
-      id: "156-EAST",
-      name: "China — East China",
-      regionName: "East China",
-      regionKey: "EAST",
-    },
-    {
-      id: "156-SOUTH-CENTRAL",
-      name: "China — South Central China",
-      regionName: "South Central China",
-      regionKey: "SOUTH-CENTRAL",
-    },
-    {
-      id: "156-SOUTHWEST",
-      name: "China — Southwest China",
-      regionName: "Southwest China",
-      regionKey: "SOUTHWEST",
-    },
-    {
-      id: "156-NORTHWEST",
-      name: "China — Northwest China",
-      regionName: "Northwest China",
-      regionKey: "NORTHWEST",
-    },
-  ];
-
-  // India has five Zonal Councils. Its eight northeastern states are covered
-  // by the separate North Eastern Council, included here as a sixth target.
-  const INDIA_REGIONS = [
-    {
-      id: "356-NORTHERN",
-      name: "India — Northern Zonal Council",
-      regionName: "Northern Zonal Council",
-      regionKey: "NORTHERN",
-    },
-    {
-      id: "356-CENTRAL",
-      name: "India — Central Zonal Council",
-      regionName: "Central Zonal Council",
-      regionKey: "CENTRAL",
-    },
-    {
-      id: "356-EASTERN",
-      name: "India — Eastern Zonal Council",
-      regionName: "Eastern Zonal Council",
-      regionKey: "EASTERN",
-    },
-    {
-      id: "356-WESTERN",
-      name: "India — Western Zonal Council",
-      regionName: "Western Zonal Council",
-      regionKey: "WESTERN",
-    },
-    {
-      id: "356-SOUTHERN",
-      name: "India — Southern Zonal Council",
-      regionName: "Southern Zonal Council",
-      regionKey: "SOUTHERN",
-    },
-    {
-      id: "356-NORTH-EASTERN",
-      name: "India — North Eastern Council",
-      regionName: "North Eastern Council",
-      regionKey: "NORTH-EASTERN",
-    },
-  ];
-
-  const BRAZIL_REGIONS = [
-    {
-      id: "076-NORTH",
-      name: "Brazil — North",
-      regionName: "North",
-      regionKey: "NORTH",
-    },
-    {
-      id: "076-NORTHEAST",
-      name: "Brazil — Northeast",
-      regionName: "Northeast",
-      regionKey: "NORTHEAST",
-    },
-    {
-      id: "076-CENTRAL-WEST",
-      name: "Brazil — Central-West",
-      regionName: "Central-West",
-      regionKey: "CENTRAL-WEST",
-    },
-    {
-      id: "076-SOUTHEAST",
-      name: "Brazil — Southeast",
-      regionName: "Southeast",
-      regionKey: "SOUTHEAST",
-    },
-    {
-      id: "076-SOUTH",
-      name: "Brazil — South",
-      regionName: "South",
-      regionKey: "SOUTH",
-    },
-  ];
-
-  const RUSSIA_REGIONS = [
-    {
-      id: "643-CENTRAL",
-      name: "Russia — Central Federal District",
-      regionName: "Central Federal District",
-      regionKey: "CENTRAL",
-    },
-    {
-      id: "643-NORTHWESTERN",
-      name: "Russia — Northwestern Federal District",
-      regionName: "Northwestern Federal District",
-      regionKey: "NORTHWESTERN",
-    },
-    {
-      id: "643-SOUTHERN",
-      name: "Russia — Southern Federal District",
-      regionName: "Southern Federal District",
-      regionKey: "SOUTHERN",
-    },
-    {
-      id: "643-NORTH-CAUCASIAN",
-      name: "Russia — North Caucasian Federal District",
-      regionName: "North Caucasian Federal District",
-      regionKey: "NORTH-CAUCASIAN",
-    },
-    {
-      id: "643-VOLGA",
-      name: "Russia — Volga Federal District",
-      regionName: "Volga Federal District",
-      regionKey: "VOLGA",
-    },
-    {
-      id: "643-URAL",
-      name: "Russia — Ural Federal District",
-      regionName: "Ural Federal District",
-      regionKey: "URAL",
-    },
-    {
-      id: "643-SIBERIAN",
-      name: "Russia — Siberian Federal District",
-      regionName: "Siberian Federal District",
-      regionKey: "SIBERIAN",
-    },
-    {
-      id: "643-FAR-EASTERN",
-      name: "Russia — Far Eastern Federal District",
-      regionName: "Far Eastern Federal District",
-      regionKey: "FAR-EASTERN",
-    },
-  ];
-
-  const CANADA_REGIONS = [
-    {
-      id: "124-ATLANTIC",
-      name: "Canada — Atlantic Provinces",
-      regionName: "Atlantic Provinces",
-      regionKey: "ATLANTIC",
-    },
-    {
-      id: "124-CENTRAL",
-      name: "Canada — Central Canada",
-      regionName: "Central Canada",
-      regionKey: "CENTRAL",
-    },
-    {
-      id: "124-PRAIRIES",
-      name: "Canada — Prairie Provinces",
-      regionName: "Prairie Provinces",
-      regionKey: "PRAIRIES",
-    },
-    {
-      id: "124-WEST-COAST",
-      name: "Canada — West Coast",
-      regionName: "West Coast",
-      regionKey: "WEST-COAST",
-    },
-    {
-      id: "124-NORTHERN",
-      name: "Canada — Northern Territories",
-      regionName: "Northern Territories",
-      regionKey: "NORTHERN",
-    },
-  ];
-
-  const AUSTRALIA_REGIONS = [
-    {
-      id: "036-NEW-SOUTH-WALES",
-      name: "Australia — New South Wales",
-      regionName: "New South Wales",
-      regionKey: "NEW-SOUTH-WALES",
-    },
-    {
-      id: "036-VICTORIA",
-      name: "Australia — Victoria",
-      regionName: "Victoria",
-      regionKey: "VICTORIA",
-    },
-    {
-      id: "036-QUEENSLAND",
-      name: "Australia — Queensland",
-      regionName: "Queensland",
-      regionKey: "QUEENSLAND",
-    },
-    {
-      id: "036-SOUTH-AUSTRALIA",
-      name: "Australia — South Australia",
-      regionName: "South Australia",
-      regionKey: "SOUTH-AUSTRALIA",
-    },
-    {
-      id: "036-WESTERN-AUSTRALIA",
-      name: "Australia — Western Australia",
-      regionName: "Western Australia",
-      regionKey: "WESTERN-AUSTRALIA",
-    },
-    {
-      id: "036-TASMANIA",
-      name: "Australia — Tasmania",
-      regionName: "Tasmania",
-      regionKey: "TASMANIA",
-    },
-    {
-      id: "036-NORTHERN-TERRITORY",
-      name: "Australia — Northern Territory",
-      regionName: "Northern Territory",
-      regionKey: "NORTHERN-TERRITORY",
-    },
-    {
-      id: "036-AUSTRALIAN-CAPITAL-TERRITORY",
-      name: "Australia — Australian Capital Territory",
-      regionName: "Australian Capital Territory",
-      regionKey: "AUSTRALIAN-CAPITAL-TERRITORY",
-    },
-  ];
-
-  const INDONESIA_REGIONS = [
-    {
-      id: "360-SUMATRA",
-      name: "Indonesia — Sumatra",
-      regionName: "Sumatra",
-      regionKey: "SUMATRA",
-    },
-    {
-      id: "360-JAVA",
-      name: "Indonesia — Java",
-      regionName: "Java",
-      regionKey: "JAVA",
-    },
-    {
-      id: "360-KALIMANTAN",
-      name: "Indonesia — Kalimantan",
-      regionName: "Kalimantan",
-      regionKey: "KALIMANTAN",
-    },
-    {
-      id: "360-SULAWESI",
-      name: "Indonesia — Sulawesi",
-      regionName: "Sulawesi",
-      regionKey: "SULAWESI",
-    },
-    {
-      id: "360-LESSER-SUNDA",
-      name: "Indonesia — Lesser Sunda Islands",
-      regionName: "Lesser Sunda Islands",
-      regionKey: "LESSER-SUNDA",
-    },
-    {
-      id: "360-MALUKU",
-      name: "Indonesia — Maluku Islands",
-      regionName: "Maluku Islands",
-      regionKey: "MALUKU",
-    },
-    {
-      id: "360-PAPUA",
-      name: "Indonesia — Papua",
-      regionName: "Papua",
-      regionKey: "PAPUA",
-    },
-  ];
-
-  const UNITED_KINGDOM_REGIONS = [
-    {
-      id: "826-ENGLAND",
-      name: "United Kingdom — England",
-      regionName: "England",
-      regionKey: "ENGLAND",
-    },
-    {
-      id: "826-SCOTLAND",
-      name: "United Kingdom — Scotland",
-      regionName: "Scotland",
-      regionKey: "SCOTLAND",
-    },
-    {
-      id: "826-WALES",
-      name: "United Kingdom — Wales",
-      regionName: "Wales",
-      regionKey: "WALES",
-    },
-    {
-      id: "826-NORTHERN-IRELAND",
-      name: "United Kingdom — Northern Ireland",
-      regionName: "Northern Ireland",
-      regionKey: "NORTHERN-IRELAND",
-    },
-  ];
 
   const COUNTRY_SUBDIVISIONS = [
     {
@@ -616,16 +326,9 @@
 
   function migrateLegacyWatchedIds(watchedIds, places) {
     const renderedIds = new Set((places || []).map((place) => String(place.id)));
-    const subdivisions = [
-      ...COUNTRY_SUBDIVISIONS.map(({ parentId, regions }) => ({
-        parentId,
-        regions,
-      })),
-      { parentId: "840-PACIFIC", regions: US_PACIFIC_TRACKING_REGIONS },
-    ];
     let changed = false;
 
-    subdivisions.forEach(({ parentId, regions }) => {
+    COUNTRY_SUBDIVISIONS.forEach(({ parentId, regions }) => {
       const subdivisionIsActive = regions.every((region) => renderedIds.has(region.id));
       if (!subdivisionIsActive || !watchedIds.has(parentId)) return;
 

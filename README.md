@@ -18,11 +18,10 @@ css/styles.css       All styling. Color palette lives in the :root block at
                       the top of the file — tweak it to restyle the globe.
 data/countries-110m.js Vendored, patched world map data. See data/README.md
                       for source, license, and why it's a local copy.
-data/japan-regions.js Vendored public-domain Natural Earth geometry for
-                      eight prepared Japan regions.
-data/large-country-regions.js Prepared public-domain Natural Earth geometry
-                      for USA, China, India, Brazil, Russia, Canada,
-                      Australia, Indonesia, and the United Kingdom.
+data/country-regions.js Prepared public-domain Natural Earth geometry for
+                      subdividing Japan, USA, China, India, Brazil, Russia,
+                      Canada, Australia, Indonesia, and the United Kingdom
+                      into smaller trackable regions.
 js/storage.js        localStorage autosave + JSON export/import backup logic
 js/globe.js          D3 globe: rotation, zoom, hover tooltip, tap/click/
                       long-press gesture handling
