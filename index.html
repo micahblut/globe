@@ -26,21 +26,25 @@
 
   <div id="panel">
     <h1 id="panel-title">Country Tracker</h1>
-    <p id="progress-line">Countries Watched: <span id="progress-count">0 / 0</span></p>
+    <p id="progress-line">Places Watched: <span id="progress-count">0 / 0</span></p>
     <div id="panel-actions">
       <button id="export-btn">Export Progress</button>
       <button id="import-btn">Import Progress</button>
       <input type="file" id="import-input" accept="application/json,.json" hidden />
     </div>
-    <p id="panel-help">Click a country to mark it watched.</p>
+    <p id="panel-help">Click a country or region to mark it watched.</p>
   </div>
+
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 <script src="data/countries-110m.js"></script>
+<script src="data/japan-regions.js"></script>
+<script src="data/large-country-regions.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/globe.js"></script>
+<script src="js/regions.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

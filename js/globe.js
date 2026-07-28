@@ -88,6 +88,9 @@
         .enter()
         .append("path")
         .attr("class", "land")
+        // Use an SVG attribute (rather than CSS) so Chromium invalidates its
+        // fill cache as clipped paths change during rotation and zoom.
+        .attr("fill-rule", "evenodd")
         .classed("watched", (d) => isWatched(d.id))
         .classed("selected", (d) => String(d.id) === selectedCountryId)
         .attr("d", path)

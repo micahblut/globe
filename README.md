@@ -1,8 +1,8 @@
 # Country Tracker
 
-A single-page, static globe for tracking which countries you've "visited" via
-YouTube travel videos. Progress is saved automatically and can be backed up
-to a JSON file.
+A single-page, static globe for tracking which countries and selected
+subregions you've "visited" via YouTube travel videos. Progress is saved
+automatically and can be backed up to a JSON file.
 
 No build step, no dependencies to install — just open `index.html` in a
 browser. World map data is vendored locally (`data/countries-110m.js`), so
@@ -18,9 +18,15 @@ css/styles.css       All styling. Color palette lives in the :root block at
                       the top of the file — tweak it to restyle the globe.
 data/countries-110m.js Vendored, patched world map data. See data/README.md
                       for source, license, and why it's a local copy.
+data/japan-regions.js Vendored public-domain Natural Earth geometry for
+                      eight prepared Japan regions.
+data/large-country-regions.js Prepared public-domain Natural Earth geometry
+                      for USA, China, India, Brazil, Russia, Canada,
+                      Australia, Indonesia, and the United Kingdom.
 js/storage.js        localStorage autosave + JSON export/import backup logic
 js/globe.js          D3 globe: rotation, zoom, hover tooltip, tap/click/
                       long-press gesture handling
+js/regions.js        Replaces selected countries with smaller trackable areas
 js/main.js           Entry point: loads map data, wires storage + globe + UI
 ```
 
@@ -30,7 +36,7 @@ works when opened directly from disk (`file://`) without a local server.
 ## Backup / restore
 
 - **Export Progress** downloads a `country-progress-YYYY-MM-DD.json` file
-  containing the watched country ids and their names.
+  containing the watched place ids and their names.
 - **Import Progress** reads a previously exported JSON file and replaces your
   current progress with its contents (you'll get a confirmation prompt first,
   since it overwrites what's in `localStorage`).
