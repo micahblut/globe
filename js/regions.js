@@ -179,10 +179,6 @@
     ukRegion("NORTHERN-IRELAND", "Northern Ireland"),
   ];
 
-  const US_PACIFIC_TRACKING_REGIONS = US_TRACKING_REGIONS.filter((region) =>
-    ["PACIFIC-COAST", "ALASKA", "HAWAII"].includes(region.regionKey)
-  );
-
   const COUNTRY_SUBDIVISIONS = [
     {
       parentId: JAPAN_COUNTRY_ID,
