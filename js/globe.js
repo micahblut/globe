@@ -101,6 +101,18 @@
 
       if (!countries) return;
 
+      // Defense-in-depth against d3-geo's orthographic clipAngle occasionally
+      // mis-stitching a complex polygon's boundary during rotation, which
+      // inverts a feature's fill to cover the whole visible hemisphere
+      // instead of just its landmass. A real country/region never comes
+      // close to covering the full visible circle, so treat that as a
+      // clipping glitch and skip drawing it for this frame rather than
+      // flood the ocean with land color.
+      const maxPlausibleArea = Math.PI * scale * scale * 0.6;
+      function safeD(d) {
+        return Math.abs(path.area(d)) > maxPlausibleArea ? null : path(d);
+      }
+
       if (countryBackdrops) {
         const backdropSel = countryBackdropGroup
           .selectAll("path.land-backdrop")
@@ -112,7 +124,7 @@
           .attr("class", "land-backdrop")
           .attr("fill-rule", "evenodd")
           .merge(backdropSel)
-          .attr("d", path);
+          .attr("d", safeD);
       }
 
       // Key by array index, not d.id: the country list never changes between
@@ -130,7 +142,7 @@
         .attr("fill-rule", "evenodd")
         .classed("watched", (d) => isWatched(d.id))
         .classed("selected", (d) => String(d.id) === selectedCountryId)
-        .attr("d", path)
+        .attr("d", safeD)
         .on("mousemove", (event, d) => {
           const name = (d.properties && d.properties.name) || "";
           tooltip.textContent = name;
@@ -141,7 +153,7 @@
           tooltip.style.opacity = 0;
         })
         .merge(sel)
-        .attr("d", path);
+        .attr("d", safeD);
 
       if (countryBorders) {
         const borderSel = countryBordersGroup
