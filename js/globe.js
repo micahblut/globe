@@ -64,11 +64,23 @@
 
     const countriesGroup = g.append("g");
 
+    // Stroke-only overlay for real country borders (see setCountryBorders):
+    // sits on top of countriesGroup so a heavier line covers the seam
+    // between a subdivided country's own regions, which are drawn with a
+    // lighter stroke in countriesGroup below.
+    const countryBordersGroup = g.append("g").attr("class", "country-borders");
+
     let countries = null;
+    let countryBorders = null;
     let selectedCountryId = null;
 
     function setCountries(features) {
       countries = features;
+      draw();
+    }
+
+    function setCountryBorders(features) {
+      countryBorders = features;
       draw();
     }
 
@@ -105,6 +117,20 @@
         })
         .merge(sel)
         .attr("d", path);
+
+      if (countryBorders) {
+        const borderSel = countryBordersGroup
+          .selectAll("path.country-border")
+          .data(countryBorders, (d, i) => i);
+
+        borderSel
+          .enter()
+          .append("path")
+          .attr("class", "country-border")
+          .attr("fill-rule", "evenodd")
+          .merge(borderSel)
+          .attr("d", path);
+      }
     }
 
     function refreshWatched() {
@@ -424,6 +450,7 @@
 
     return {
       setCountries,
+      setCountryBorders,
       refreshWatched,
       throwDart,
       zoomIn() {

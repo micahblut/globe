@@ -71,6 +71,18 @@ svg:active {
   fill: var(--color-land-watched);
 }
 
+/* Heavier stroke traced along each whole country's dissolved outline (see
+   MapRegions.buildCountryBorders), layered on top of .land so a country's
+   real border reads as heavier than the seams between its own regions,
+   which only ever show the lighter .land stroke underneath. */
+.country-border {
+  fill: none;
+  stroke: var(--color-land-border);
+  stroke-width: 1.4px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
 /* Tap-to-select ring (mainly touch — see js/globe.js); works alongside
    .watched, which controls fill rather than stroke. */
 .land.selected {

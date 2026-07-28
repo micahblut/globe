@@ -144,6 +144,9 @@
 
     loading.style.display = "none";
     globeApi.setCountries(renderedPlaces);
+    globeApi.setCountryBorders(
+      MapRegions.buildCountryBorders(worldCountries, window.COUNTRY_REGIONS_TOPOLOGIES)
+    );
     updateProgress();
     dartModeBtn.disabled = false;
   } else {

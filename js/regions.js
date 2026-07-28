@@ -324,6 +324,43 @@
     );
   }
 
+  // A subdivided country renders as several separate region paths, each
+  // stroked around its own full perimeter — so the seam between two
+  // sibling regions gets the same stroke as the country's actual border.
+  // This dissolves each subdivided country's regions back into a single
+  // outline (via the shared arcs already baked into its topology) so the
+  // globe can stroke real country borders more heavily than region seams,
+  // without changing the interactive/fill layer at all.
+  function buildCountryBorders(countries, topologies) {
+    const availableTopologies = topologies || {};
+    const subdivisionByParentId = new Map(
+      COUNTRY_SUBDIVISIONS.map((subdivision) => [subdivision.parentId, subdivision])
+    );
+
+    return countries.map((country) => {
+      const subdivision = subdivisionByParentId.get(String(country.id));
+      const topology = subdivision && availableTopologies[subdivision.topologyKey];
+      if (!subdivision || !topology) return country;
+
+      try {
+        const regions = topology.objects && topology.objects.regions;
+        if (!regions || !Array.isArray(regions.geometries)) {
+          throw new Error("topology is missing its `regions` geometry collection.");
+        }
+        return {
+          ...country,
+          geometry: topojson.merge(topology, regions.geometries),
+        };
+      } catch (err) {
+        console.error(
+          `Could not merge ${subdivision.countryName} regions into a border outline; using the country boundary instead.`,
+          err
+        );
+        return country;
+      }
+    });
+  }
+
   function migrateLegacyWatchedIds(watchedIds, places) {
     const renderedIds = new Set((places || []).map((place) => String(place.id)));
     let changed = false;
@@ -344,6 +381,7 @@
 
   global.MapRegions = {
     applyCountrySubdivisions,
+    buildCountryBorders,
     migrateLegacyWatchedIds,
   };
 })(window);
