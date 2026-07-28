@@ -35,6 +35,27 @@
     <p id="panel-help">Click a country or region to mark it visited.</p>
   </div>
 
+  <aside id="place-drawer" class="hidden" aria-hidden="true">
+    <div id="drawer-header">
+      <h2 id="drawer-title"></h2>
+      <button id="drawer-close" title="Close" aria-label="Close notes">&times;</button>
+    </div>
+    <label id="drawer-notes-label" for="drawer-notes">Notes</label>
+    <div
+      id="drawer-notes-view"
+      tabindex="0"
+      role="button"
+      aria-label="Edit notes"
+      aria-labelledby="drawer-notes-label"
+    ></div>
+    <textarea
+      id="drawer-notes"
+      placeholder="Notes about this place... paste a link or use [label](https://example.com)"
+      hidden
+    ></textarea>
+    <p id="drawer-hint">Notes save automatically and are included in Export/Import.</p>
+  </aside>
+
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
@@ -44,6 +65,7 @@
 <script src="js/storage.js"></script>
 <script src="js/globe.js"></script>
 <script src="js/regions.js"></script>
+<script src="js/notes-drawer.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

@@ -26,19 +26,28 @@ js/storage.js        localStorage autosave + JSON export/import backup logic
 js/globe.js          D3 globe: rotation, zoom, hover tooltip, tap/click/
                       long-press gesture handling
 js/regions.js        Replaces selected countries with smaller trackable areas
+js/notes-drawer.js   Place notes drawer: shown on selection, minimal link
+                      formatting for notes
 js/main.js           Entry point: loads map data, wires storage + globe + UI
 ```
 
 Scripts are loaded as plain `<script>` tags (not ES modules) so the page
 works when opened directly from disk (`file://`) without a local server.
 
+## Place notes
+
+Selecting a place opens a drawer with its name and a notes field. Notes
+support plain text plus links — either a bare `https://...` URL or a
+Markdown-style `[label](https://...)` link — autosaved to `localStorage`
+(debounced) as you type. No other formatting is supported by design.
+
 ## Backup / restore
 
 - **Export Progress** downloads a `country-progress-YYYY-MM-DD.json` file
-  containing the watched place ids and their names.
+  containing the watched place ids, their names, and any notes you've added.
 - **Import Progress** reads a previously exported JSON file and replaces your
-  current progress with its contents (you'll get a confirmation prompt first,
-  since it overwrites what's in `localStorage`).
+  current progress and notes with its contents (you'll get a confirmation
+  prompt first, since it overwrites what's in `localStorage`).
 
 ## Collaborating
 

@@ -15,15 +15,28 @@
   const zoomOutBtn = document.getElementById("zoom-out");
   const dartModeBtn = document.getElementById("dart-mode-btn");
 
+  const placeDrawer = createPlaceDrawer({
+    drawer: document.getElementById("place-drawer"),
+    titleEl: document.getElementById("drawer-title"),
+    closeBtn: document.getElementById("drawer-close"),
+    textarea: document.getElementById("drawer-notes"),
+    viewEl: document.getElementById("drawer-notes-view"),
+    onNoteChange(id, text) {
+      notesByPlaceId[id] = text;
+      CountryStorage.saveNotes(notesByPlaceId);
+    },
+  });
+
   // Coarse-pointer devices (touch) get a two-step gesture (tap to select,
   // long-press to toggle) since there's no hover to preview a country first.
   const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
   const DEFAULT_HELP_TEXT = isTouchDevice
     ? "Tap a country or region to select it, then long-press to mark it watched."
-    : "Click a country or region to mark it watched.";
+    : "Click a country or region to select it, then double-click to mark it watched.";
   panelHelp.textContent = DEFAULT_HELP_TEXT;
 
   let watchedIds = CountryStorage.loadWatchedIds();
+  let notesByPlaceId = CountryStorage.loadNotes();
   let placeNamesById = {};
   let totalPlaces = 0;
   let renderedPlaces = [];
@@ -49,11 +62,13 @@
     onSelectCountry(d) {
       if (!d) {
         panelHelp.textContent = DEFAULT_HELP_TEXT;
+        placeDrawer.hide();
         return;
       }
       panelHelp.textContent = isTouchDevice
         ? `${nameOf(d)} selected — long-press to mark watched.`
-        : `${nameOf(d)} selected — click it to mark watched.`;
+        : `${nameOf(d)} selected — double-click to mark watched.`;
+      placeDrawer.show(d, notesByPlaceId[String(d.id)]);
     },
     onToggleCountry(d) {
       const id = String(d.id);
@@ -66,6 +81,7 @@
       CountryStorage.saveWatchedIds(watchedIds);
       globeApi.refreshWatched();
       updateProgress();
+      placeDrawer.show(d, notesByPlaceId[id]);
       if (isTouchDevice) {
         panelHelp.textContent = `${nameOf(d)} marked ${nowWatched ? "watched" : "unwatched"}.`;
       }
@@ -86,7 +102,7 @@
   });
 
   exportBtn.addEventListener("click", () => {
-    CountryStorage.exportProgress(watchedIds, placeNamesById);
+    CountryStorage.exportProgress(watchedIds, placeNamesById, notesByPlaceId);
   });
 
   importBtn.addEventListener("click", () => importInput.click());
@@ -96,7 +112,7 @@
     if (!file) return;
 
     const confirmed = confirm(
-      "Importing will replace your current progress with the contents of this file. Continue?"
+      "Importing will replace your current progress and notes with the contents of this file. Continue?"
     );
     if (!confirmed) {
       importInput.value = "";
@@ -104,9 +120,13 @@
     }
 
     try {
-      watchedIds = await CountryStorage.importProgress(file);
+      const imported = await CountryStorage.importProgress(file);
+      watchedIds = imported.watchedIds;
+      notesByPlaceId = imported.notesByPlaceId;
       MapRegions.migrateLegacyWatchedIds(watchedIds, renderedPlaces);
       CountryStorage.saveWatchedIds(watchedIds);
+      CountryStorage.saveNotes(notesByPlaceId);
+      placeDrawer.hide();
       globeApi.refreshWatched();
       updateProgress();
     } catch (err) {

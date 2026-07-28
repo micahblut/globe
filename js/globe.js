@@ -389,7 +389,7 @@
         markInteraction();
         draw();
       })
-      .on("end", () => {
+      .on("end", (event) => {
         dragging = false;
         markInteraction();
         if (longPressTimer) {
@@ -411,8 +411,18 @@
               selectFeature(d);
               centerOnFeature(d);
               if (onSelectCountry) onSelectCountry(d);
-            } else if (onToggleCountry) {
-              onToggleCountry(d);
+            } else {
+              // Mouse: a click always selects (so notes can be checked/edited
+              // without changing progress); only a second click within the
+              // browser's own double-click window also toggles watched state.
+              // `detail` is the native click-count the OS/browser already
+              // computes for mouseup, so this reuses that timing/distance
+              // heuristic instead of reimplementing it.
+              if (onSelectCountry) onSelectCountry(d);
+              const clickCount = event.sourceEvent ? event.sourceEvent.detail : 1;
+              if (clickCount >= 2 && onToggleCountry) {
+                onToggleCountry(d);
+              }
             }
           }
         } else if (!longPressFired && wasTap && !tappedLand && selectedCountryId != null) {
