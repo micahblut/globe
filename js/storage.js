@@ -2,6 +2,7 @@
 // Exposes a global `CountryStorage` object used by main.js.
 (function (global) {
   const STORAGE_KEY = "countryTracker.watchedIds";
+  const NOTES_STORAGE_KEY = "countryTracker.notesByPlaceId";
 
   function loadWatchedIds() {
     try {
@@ -19,7 +20,34 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(watchedIds)));
   }
 
-  function exportProgress(watchedIds, placeNamesById) {
+  function loadNotes() {
+    try {
+      const raw = localStorage.getItem(NOTES_STORAGE_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (err) {
+      console.warn("Could not read saved notes, starting fresh.", err);
+      return {};
+    }
+  }
+
+  function saveNotes(notesByPlaceId) {
+    localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notesByPlaceId));
+  }
+
+  // Drops blank entries so exports/localStorage don't accumulate empty
+  // strings for places a user typed into and then cleared.
+  function cleanNotes(notesByPlaceId) {
+    const cleaned = {};
+    Object.keys(notesByPlaceId || {}).forEach((id) => {
+      const text = typeof notesByPlaceId[id] === "string" ? notesByPlaceId[id].trim() : "";
+      if (text) cleaned[id] = notesByPlaceId[id];
+    });
+    return cleaned;
+  }
+
+  function exportProgress(watchedIds, placeNamesById, notesByPlaceId) {
     const ids = Array.from(watchedIds);
     const payload = {
       exportedAt: new Date().toISOString(),
@@ -27,6 +55,7 @@
       watchedCountryNames: ids
         .map((id) => placeNamesById[id] || id)
         .sort((a, b) => a.localeCompare(b)),
+      notesByPlaceId: cleanNotes(notesByPlaceId),
     };
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], {
@@ -53,7 +82,12 @@
           const ids = Array.isArray(data.watchedCountryIds)
             ? data.watchedCountryIds
             : [];
-          resolve(new Set(ids.map(String)));
+          const notesByPlaceId = cleanNotes(
+            data.notesByPlaceId && typeof data.notesByPlaceId === "object"
+              ? data.notesByPlaceId
+              : {}
+          );
+          resolve({ watchedIds: new Set(ids.map(String)), notesByPlaceId });
         } catch (err) {
           reject(err);
         }
@@ -66,6 +100,8 @@
   global.CountryStorage = {
     loadWatchedIds,
     saveWatchedIds,
+    loadNotes,
+    saveNotes,
     exportProgress,
     importProgress,
   };
