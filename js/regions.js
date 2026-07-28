@@ -361,6 +361,21 @@
     });
   }
 
+  // A subdivided country's regions come from a different, independently
+  // simplified source (Natural Earth Admin 1) than the rest of the world map
+  // (world-atlas Admin 0), so a region's edge can fall a hair short of the
+  // real international border and leave a sliver of ocean showing through.
+  // Returning each subdivided country's original, unsplit shape lets the
+  // globe paint it as a backdrop underneath the regions: since that shape
+  // matches its neighbors exactly (same source, no seam to mismatch), any
+  // such sliver reveals ordinary land color instead of ocean.
+  function buildCountryBackdrops(countries) {
+    const subdividedParentIds = new Set(
+      COUNTRY_SUBDIVISIONS.map((subdivision) => subdivision.parentId)
+    );
+    return countries.filter((country) => subdividedParentIds.has(String(country.id)));
+  }
+
   function migrateLegacyWatchedIds(watchedIds, places) {
     const renderedIds = new Set((places || []).map((place) => String(place.id)));
     let changed = false;
@@ -382,6 +397,7 @@
   global.MapRegions = {
     applyCountrySubdivisions,
     buildCountryBorders,
+    buildCountryBackdrops,
     migrateLegacyWatchedIds,
   };
 })(window);

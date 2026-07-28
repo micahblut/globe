@@ -144,6 +144,7 @@
 
     loading.style.display = "none";
     globeApi.setCountries(renderedPlaces);
+    globeApi.setCountryBackdrops(MapRegions.buildCountryBackdrops(worldCountries));
     globeApi.setCountryBorders(
       MapRegions.buildCountryBorders(worldCountries, window.COUNTRY_REGIONS_TOPOLOGIES)
     );

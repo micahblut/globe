@@ -58,6 +58,15 @@ svg:active {
   stroke-width: 0.5px;
 }
 
+/* Solid fill under a subdivided country's own regions, in the default
+   unwatched color (see MapRegions.buildCountryBackdrops) — masks slivers
+   where a region's independently-sourced edge falls short of the real
+   border with a neighboring country, instead of showing ocean through it. */
+.land-backdrop {
+  fill: var(--color-land-unwatched);
+  pointer-events: none;
+}
+
 .land {
   fill: var(--color-land-unwatched);
   stroke: var(--color-land-border);

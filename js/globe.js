@@ -62,6 +62,11 @@
       .attr("class", "graticule")
       .attr("d", path);
 
+    // Solid fill under countriesGroup (see setCountryBackdrops): masks
+    // slivers where a subdivided country's region edges fall short of its
+    // actual border with a neighboring country.
+    const countryBackdropGroup = g.append("g");
+
     const countriesGroup = g.append("g");
 
     // Stroke-only overlay for real country borders (see setCountryBorders):
@@ -71,11 +76,17 @@
     const countryBordersGroup = g.append("g").attr("class", "country-borders");
 
     let countries = null;
+    let countryBackdrops = null;
     let countryBorders = null;
     let selectedCountryId = null;
 
     function setCountries(features) {
       countries = features;
+      draw();
+    }
+
+    function setCountryBackdrops(features) {
+      countryBackdrops = features;
       draw();
     }
 
@@ -89,6 +100,20 @@
       graticulePath.attr("d", path);
 
       if (!countries) return;
+
+      if (countryBackdrops) {
+        const backdropSel = countryBackdropGroup
+          .selectAll("path.land-backdrop")
+          .data(countryBackdrops, (d, i) => i);
+
+        backdropSel
+          .enter()
+          .append("path")
+          .attr("class", "land-backdrop")
+          .attr("fill-rule", "evenodd")
+          .merge(backdropSel)
+          .attr("d", path);
+      }
 
       // Key by array index, not d.id: the country list never changes between
       // redraws (only rotation/scale do), so index is always unique and
@@ -450,6 +475,7 @@
 
     return {
       setCountries,
+      setCountryBackdrops,
       setCountryBorders,
       refreshWatched,
       throwDart,
