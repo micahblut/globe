@@ -19,20 +19,21 @@
   // long-press to toggle) since there's no hover to preview a country first.
   const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
   const DEFAULT_HELP_TEXT = isTouchDevice
-    ? "Tap a country to select it, then long-press to mark it watched."
-    : "Click a country to mark it watched.";
+    ? "Tap a country or region to select it, then long-press to mark it watched."
+    : "Click a country or region to mark it watched.";
   panelHelp.textContent = DEFAULT_HELP_TEXT;
 
   let watchedIds = CountryStorage.loadWatchedIds();
-  let countryNamesById = {};
-  let totalCountries = 0;
+  let placeNamesById = {};
+  let totalPlaces = 0;
+  let renderedPlaces = [];
 
   function isWatched(id) {
     return watchedIds.has(String(id));
   }
 
   function updateProgress() {
-    progressCountEl.textContent = `${watchedIds.size} / ${totalCountries}`;
+    progressCountEl.textContent = `${watchedIds.size} / ${totalPlaces}`;
   }
 
   function nameOf(d) {
@@ -79,13 +80,13 @@
     globeApi.throwDart().then((target) => {
       dartModeBtn.disabled = false;
       if (!target) {
-        panelHelp.textContent = "Every country is already watched — nothing left to dart!";
+        panelHelp.textContent = "Every place is already watched — nothing left to dart!";
       }
     });
   });
 
   exportBtn.addEventListener("click", () => {
-    CountryStorage.exportProgress(watchedIds, countryNamesById);
+    CountryStorage.exportProgress(watchedIds, placeNamesById);
   });
 
   importBtn.addEventListener("click", () => importInput.click());
@@ -104,6 +105,7 @@
 
     try {
       watchedIds = await CountryStorage.importProgress(file);
+      MapRegions.migrateLegacyWatchedIds(watchedIds, renderedPlaces);
       CountryStorage.saveWatchedIds(watchedIds);
       globeApi.refreshWatched();
       updateProgress();
@@ -122,14 +124,30 @@
   const world = window.WORLD_ATLAS_110M;
 
   if (world) {
-    const countries = topojson.feature(world, world.objects.countries).features;
-    totalCountries = countries.length;
-    countries.forEach((c) => {
-      countryNamesById[c.id] = (c.properties && c.properties.name) || c.id;
+    const worldCountries = topojson.feature(world, world.objects.countries).features;
+    renderedPlaces = MapRegions.applyCountrySubdivisions(
+      worldCountries,
+      window.COUNTRY_REGIONS_TOPOLOGIES
+    );
+
+    // Old saves represented subdivided countries with one id. Once split,
+    // inherit that completion across their regions so updates never erase
+    // existing progress.
+    if (MapRegions.migrateLegacyWatchedIds(watchedIds, renderedPlaces)) {
+      CountryStorage.saveWatchedIds(watchedIds);
+    }
+
+    totalPlaces = renderedPlaces.length;
+    renderedPlaces.forEach((c) => {
+      placeNamesById[c.id] = (c.properties && c.properties.name) || c.id;
     });
 
     loading.style.display = "none";
-    globeApi.setCountries(countries);
+    globeApi.setCountries(renderedPlaces);
+    globeApi.setCountryBackdrops(MapRegions.buildCountryBackdrops(worldCountries));
+    globeApi.setCountryBorders(
+      MapRegions.buildCountryBorders(worldCountries, window.COUNTRY_REGIONS_TOPOLOGIES)
+    );
     updateProgress();
     dartModeBtn.disabled = false;
   } else {

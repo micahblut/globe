@@ -19,13 +19,13 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(watchedIds)));
   }
 
-  function exportProgress(watchedIds, countryNamesById) {
+  function exportProgress(watchedIds, placeNamesById) {
     const ids = Array.from(watchedIds);
     const payload = {
       exportedAt: new Date().toISOString(),
       watchedCountryIds: ids,
       watchedCountryNames: ids
-        .map((id) => countryNamesById[id] || id)
+        .map((id) => placeNamesById[id] || id)
         .sort((a, b) => a.localeCompare(b)),
     };
 

@@ -62,13 +62,36 @@
       .attr("class", "graticule")
       .attr("d", path);
 
+    // Solid fill under countriesGroup (see setCountryBackdrops): masks
+    // slivers where a subdivided country's region edges fall short of its
+    // actual border with a neighboring country.
+    const countryBackdropGroup = g.append("g");
+
     const countriesGroup = g.append("g");
 
+    // Stroke-only overlay for real country borders (see setCountryBorders):
+    // sits on top of countriesGroup so a heavier line covers the seam
+    // between a subdivided country's own regions, which are drawn with a
+    // lighter stroke in countriesGroup below.
+    const countryBordersGroup = g.append("g").attr("class", "country-borders");
+
     let countries = null;
+    let countryBackdrops = null;
+    let countryBorders = null;
     let selectedCountryId = null;
 
     function setCountries(features) {
       countries = features;
+      draw();
+    }
+
+    function setCountryBackdrops(features) {
+      countryBackdrops = features;
+      draw();
+    }
+
+    function setCountryBorders(features) {
+      countryBorders = features;
       draw();
     }
 
@@ -77,6 +100,20 @@
       graticulePath.attr("d", path);
 
       if (!countries) return;
+
+      if (countryBackdrops) {
+        const backdropSel = countryBackdropGroup
+          .selectAll("path.land-backdrop")
+          .data(countryBackdrops, (d, i) => i);
+
+        backdropSel
+          .enter()
+          .append("path")
+          .attr("class", "land-backdrop")
+          .attr("fill-rule", "evenodd")
+          .merge(backdropSel)
+          .attr("d", path);
+      }
 
       // Key by array index, not d.id: the country list never changes between
       // redraws (only rotation/scale do), so index is always unique and
@@ -88,6 +125,9 @@
         .enter()
         .append("path")
         .attr("class", "land")
+        // Use an SVG attribute (rather than CSS) so Chromium invalidates its
+        // fill cache as clipped paths change during rotation and zoom.
+        .attr("fill-rule", "evenodd")
         .classed("watched", (d) => isWatched(d.id))
         .classed("selected", (d) => String(d.id) === selectedCountryId)
         .attr("d", path)
@@ -102,6 +142,20 @@
         })
         .merge(sel)
         .attr("d", path);
+
+      if (countryBorders) {
+        const borderSel = countryBordersGroup
+          .selectAll("path.country-border")
+          .data(countryBorders, (d, i) => i);
+
+        borderSel
+          .enter()
+          .append("path")
+          .attr("class", "country-border")
+          .attr("fill-rule", "evenodd")
+          .merge(borderSel)
+          .attr("d", path);
+      }
     }
 
     function refreshWatched() {
@@ -421,6 +475,8 @@
 
     return {
       setCountries,
+      setCountryBackdrops,
+      setCountryBorders,
       refreshWatched,
       throwDart,
       zoomIn() {

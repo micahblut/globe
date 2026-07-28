@@ -58,6 +58,15 @@ svg:active {
   stroke-width: 0.5px;
 }
 
+/* Solid fill under a subdivided country's own regions, in the default
+   unwatched color (see MapRegions.buildCountryBackdrops) — masks slivers
+   where a region's independently-sourced edge falls short of the real
+   border with a neighboring country, instead of showing ocean through it. */
+.land-backdrop {
+  fill: var(--color-land-unwatched);
+  pointer-events: none;
+}
+
 .land {
   fill: var(--color-land-unwatched);
   stroke: var(--color-land-border);
@@ -69,6 +78,18 @@ svg:active {
 
 .land.watched {
   fill: var(--color-land-watched);
+}
+
+/* Heavier stroke traced along each whole country's dissolved outline (see
+   MapRegions.buildCountryBorders), layered on top of .land so a country's
+   real border reads as heavier than the seams between its own regions,
+   which only ever show the lighter .land stroke underneath. */
+.country-border {
+  fill: none;
+  stroke: var(--color-land-border);
+  stroke-width: 1.4px;
+  stroke-linejoin: round;
+  pointer-events: none;
 }
 
 /* Tap-to-select ring (mainly touch — see js/globe.js); works alongside
