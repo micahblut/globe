@@ -9,10 +9,24 @@
   const LONG_PRESS_MS = 500;
   const CENTER_ANIMATION_MS = 700;
   const AUTO_ROTATE_RESUME_MS = 5000; // resume auto-rotation after this long idle, if nothing is selected
+  const AUTO_ROTATE_FPS = 24;
+  const AUTO_ROTATE_INTERVAL_MS = 1000 / AUTO_ROTATE_FPS;
+  const AUTO_ROTATE_DEGREES_PER_SECOND = 1.8; // matches the old 0.03 degrees/frame at 60 Hz
   const ZOOM_TICK_FACTOR = 1.15; // scale multiplier per zoom-in click/tick
   const DART_SPIN_MS = 2000; // total duration of the dart-mode spin-and-land animation
   const DART_MIN_SPINS = 3; // extra full rotations layered on top of the trip to the target
   const DART_MAX_SPINS = 5;
+
+  // These four regions deliberately retain their original, unclipped source
+  // geometry (see data/README.md), so keep the expensive projected-area guard
+  // only where the orthographic clipper still has a known opportunity to
+  // mis-stitch a polygon. All other features are clipped/prepared offline.
+  const CLIP_AREA_GUARD_FEATURE_IDS = new Set([
+    "643-NORTHWESTERN",
+    "643-URAL",
+    "643-SIBERIAN",
+    "643-FAR-EASTERN",
+  ]);
 
   function createGlobe({
     stage,
@@ -79,20 +93,45 @@
     let countryBackdrops = null;
     let countryBorders = null;
     let selectedCountryId = null;
+    let drawFrame = null;
+
+    // All render requests share one animation-frame slot. Input events may
+    // arrive much faster than the display can paint; they still update the
+    // projection immediately, but only the latest state is rendered.
+    function requestDraw() {
+      if (drawFrame != null || document.hidden) return;
+      drawFrame = requestAnimationFrame(renderFrame);
+    }
+
+    function renderFrame(now) {
+      drawFrame = null;
+
+      let onMotionDone = null;
+      if (centerAnimation) {
+        onMotionDone = advanceCenterAnimation(now);
+      } else if (inertiaActive) {
+        advanceInertia();
+      }
+
+      draw();
+
+      if (onMotionDone) onMotionDone();
+      if (centerAnimation || inertiaActive) requestDraw();
+    }
 
     function setCountries(features) {
       countries = features;
-      draw();
+      requestDraw();
     }
 
     function setCountryBackdrops(features) {
       countryBackdrops = features;
-      draw();
+      requestDraw();
     }
 
     function setCountryBorders(features) {
       countryBorders = features;
-      draw();
+      requestDraw();
     }
 
     function draw() {
@@ -101,15 +140,12 @@
 
       if (!countries) return;
 
-      // Defense-in-depth against d3-geo's orthographic clipAngle occasionally
-      // mis-stitching a complex polygon's boundary during rotation, which
-      // inverts a feature's fill to cover the whole visible hemisphere
-      // instead of just its landmass. A real country/region never comes
-      // close to covering the full visible circle, so treat that as a
-      // clipping glitch and skip drawing it for this frame rather than
-      // flood the ocean with land color.
+      // Defense-in-depth for the four documented unclipped Russian regions.
+      // Restricting the area check to them avoids projecting every ordinary
+      // country/region twice on every frame.
       const maxPlausibleArea = Math.PI * scale * scale * 0.6;
-      function safeD(d) {
+      function landPath(d) {
+        if (!CLIP_AREA_GUARD_FEATURE_IDS.has(String(d.id))) return path(d);
         return Math.abs(path.area(d)) > maxPlausibleArea ? null : path(d);
       }
 
@@ -124,7 +160,7 @@
           .attr("class", "land-backdrop")
           .attr("fill-rule", "evenodd")
           .merge(backdropSel)
-          .attr("d", safeD);
+          .attr("d", path);
       }
 
       // Key by array index, not d.id: the country list never changes between
@@ -142,7 +178,6 @@
         .attr("fill-rule", "evenodd")
         .classed("watched", (d) => isWatched(d.id))
         .classed("selected", (d) => String(d.id) === selectedCountryId)
-        .attr("d", safeD)
         .on("mousemove", (event, d) => {
           const name = (d.properties && d.properties.name) || "";
           tooltip.textContent = name;
@@ -153,7 +188,7 @@
           tooltip.style.opacity = 0;
         })
         .merge(sel)
-        .attr("d", safeD);
+        .attr("d", landPath);
 
       if (countryBorders) {
         const borderSel = countryBordersGroup
@@ -188,13 +223,10 @@
     }
 
     // --- Rotate-to-center animation (used when tapping a country on touch) ---
-    let centerAnimationFrame = null;
+    let centerAnimation = null;
 
     function cancelCenterAnimation() {
-      if (centerAnimationFrame) {
-        cancelAnimationFrame(centerAnimationFrame);
-        centerAnimationFrame = null;
-      }
+      centerAnimation = null;
     }
 
     function easeCubicOut(t) {
@@ -223,26 +255,41 @@
       const phiDelta = targetPhi - startPhi;
 
       cancelCenterAnimation();
-      const start = performance.now();
+      inertiaActive = false;
+      centerAnimation = {
+        start: performance.now(),
+        duration,
+        easing,
+        startLambda,
+        startPhi,
+        lambdaDelta,
+        phiDelta,
+        startScale,
+        scaleDelta,
+        onDone,
+      };
+      requestDraw();
+    }
 
-      function step(now) {
-        const t = Math.min(1, (now - start) / duration);
-        const eased = easing(t);
-        projection.rotate([startLambda + lambdaDelta * eased, startPhi + phiDelta * eased]);
-        if (scaleDelta !== 0) {
-          scale = startScale + scaleDelta * eased;
-          projection.scale(scale);
-        }
-        draw();
-        if (t < 1) {
-          centerAnimationFrame = requestAnimationFrame(step);
-        } else {
-          centerAnimationFrame = null;
-          if (onDone) onDone();
-        }
+    function advanceCenterAnimation(now) {
+      const animation = centerAnimation;
+      if (!animation) return null;
+
+      const t = Math.min(1, (now - animation.start) / animation.duration);
+      const eased = animation.easing(t);
+      projection.rotate([
+        animation.startLambda + animation.lambdaDelta * eased,
+        animation.startPhi + animation.phiDelta * eased,
+      ]);
+      if (animation.scaleDelta !== 0) {
+        scale = animation.startScale + animation.scaleDelta * eased;
+        projection.scale(scale);
       }
 
-      centerAnimationFrame = requestAnimationFrame(step);
+      if (t < 1) return null;
+
+      centerAnimation = null;
+      return animation.onDone || null;
     }
 
     function centerOnFeature(d) {
@@ -312,8 +359,12 @@
     let lastX = null;
     let lastY = null;
     let rotationVelocity = [0, 0];
+    let inertiaActive = false;
     let autoRotate = true;
     let lastInteractionAt = performance.now();
+    let lastAutoRotateAt = performance.now();
+    let autoRotateTimer = null;
+    let autoRotateResumeTimer = null;
     let dragging = false;
     let dragDistance = 0;
     let gestureTarget = null;
@@ -331,7 +382,10 @@
 
     function stopAutoRotate() {
       autoRotate = false;
+      lastAutoRotateAt = null;
+      cancelAutoRotateTick();
       markInteraction();
+      scheduleAutoRotateResume();
       if (hint) hint.style.opacity = 0;
     }
 
@@ -342,6 +396,7 @@
         dragDistance = 0;
         stopAutoRotate();
         cancelCenterAnimation();
+        inertiaActive = false;
         lastX = event.x;
         lastY = event.y;
         rotationVelocity = [0, 0];
@@ -387,7 +442,7 @@
         lastX = event.x;
         lastY = event.y;
         markInteraction();
-        draw();
+        requestDraw();
       })
       .on("end", (event) => {
         dragging = false;
@@ -432,32 +487,45 @@
           selectFeature(null);
           if (onSelectCountry) onSelectCountry(null);
         }
-        inertiaFrame();
+        startInertia();
+        scheduleAutoRotateResume();
       });
 
     svg.call(drag);
 
-    function inertiaFrame() {
-      if (dragging) return;
+    function startInertia() {
+      inertiaActive =
+        !dragging &&
+        (Math.abs(rotationVelocity[0]) >= 0.01 || Math.abs(rotationVelocity[1]) >= 0.01);
+      if (inertiaActive) requestDraw();
+    }
+
+    function advanceInertia() {
+      if (dragging) {
+        inertiaActive = false;
+        return;
+      }
+
       const decay = 0.94;
       rotationVelocity = [rotationVelocity[0] * decay, rotationVelocity[1] * decay];
       if (Math.abs(rotationVelocity[0]) < 0.01 && Math.abs(rotationVelocity[1]) < 0.01) {
+        inertiaActive = false;
+        scheduleAutoRotateResume();
         return;
       }
+
       const rotate = projection.rotate();
       projection.rotate([
         rotate[0] + rotationVelocity[0],
         Math.max(-90, Math.min(90, rotate[1] + rotationVelocity[1])),
       ]);
-      draw();
-      requestAnimationFrame(inertiaFrame);
     }
 
     // --- Zoom (scroll / pinch / buttons) ---
     function setScale(newScale) {
       scale = Math.max(minScale, Math.min(maxScale, newScale));
       projection.scale(scale);
-      draw();
+      requestDraw();
     }
 
     svg.on(
@@ -470,19 +538,95 @@
       { passive: false }
     );
 
-    // --- Gentle auto-rotation, resuming after an idle period ---
-    // Resumes only once nothing is selected, nothing is mid-gesture, and
-    // AUTO_ROTATE_RESUME_MS has passed since the last interaction.
-    d3.timer(() => {
-      if (!autoRotate) {
-        const idle = performance.now() - lastInteractionAt;
-        const canResume = !dragging && selectedCountryId == null && idle >= AUTO_ROTATE_RESUME_MS;
-        if (!canResume) return;
-        autoRotate = true;
-      }
+    // --- Gentle auto-rotation, capped independently of display refresh ---
+    function cancelAutoRotateTick() {
+      if (autoRotateTimer == null) return;
+      clearTimeout(autoRotateTimer);
+      autoRotateTimer = null;
+    }
+
+    function scheduleAutoRotateTick(delay = AUTO_ROTATE_INTERVAL_MS) {
+      if (!autoRotate || document.hidden || autoRotateTimer != null) return;
+      autoRotateTimer = setTimeout(runAutoRotateTick, delay);
+    }
+
+    function runAutoRotateTick() {
+      autoRotateTimer = null;
+      if (!autoRotate || document.hidden) return;
+
+      const now = performance.now();
+      const elapsed = Math.min(
+        AUTO_ROTATE_INTERVAL_MS * 2,
+        lastAutoRotateAt == null ? AUTO_ROTATE_INTERVAL_MS : now - lastAutoRotateAt
+      );
+      lastAutoRotateAt = now;
+
       const rotate = projection.rotate();
-      projection.rotate([rotate[0] + 0.03, rotate[1]]);
-      draw();
+      projection.rotate([
+        rotate[0] + (AUTO_ROTATE_DEGREES_PER_SECOND * elapsed) / 1000,
+        rotate[1],
+      ]);
+      requestDraw();
+      scheduleAutoRotateTick();
+    }
+
+    function scheduleAutoRotateResume() {
+      if (autoRotateResumeTimer != null) {
+        clearTimeout(autoRotateResumeTimer);
+        autoRotateResumeTimer = null;
+      }
+      if (autoRotate || document.hidden) return;
+
+      const elapsed = performance.now() - lastInteractionAt;
+      const delay = Math.max(0, AUTO_ROTATE_RESUME_MS - elapsed);
+      autoRotateResumeTimer = setTimeout(tryResumeAutoRotate, delay);
+    }
+
+    function tryResumeAutoRotate() {
+      autoRotateResumeTimer = null;
+      if (autoRotate || document.hidden) return;
+
+      const now = performance.now();
+      const idle = now - lastInteractionAt;
+      if (idle < AUTO_ROTATE_RESUME_MS) {
+        scheduleAutoRotateResume();
+        return;
+      }
+
+      const canResume =
+        !dragging &&
+        !centerAnimation &&
+        !inertiaActive &&
+        selectedCountryId == null;
+      if (!canResume) return;
+
+      autoRotate = true;
+      lastAutoRotateAt = now;
+      scheduleAutoRotateTick();
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        cancelAutoRotateTick();
+        if (autoRotateResumeTimer != null) {
+          clearTimeout(autoRotateResumeTimer);
+          autoRotateResumeTimer = null;
+        }
+        if (drawFrame != null) {
+          cancelAnimationFrame(drawFrame);
+          drawFrame = null;
+        }
+        lastAutoRotateAt = null;
+        return;
+      }
+
+      requestDraw();
+      if (autoRotate) {
+        lastAutoRotateAt = performance.now();
+        scheduleAutoRotateTick();
+      } else {
+        scheduleAutoRotateResume();
+      }
     });
 
     // --- Resize handling ---
@@ -492,8 +636,10 @@
       svg.attr("width", width).attr("height", height);
       projection.translate([width / 2, height / 2]);
       g.select("circle.sphere").attr("cx", width / 2).attr("cy", height / 2);
-      draw();
+      requestDraw();
     });
+
+    scheduleAutoRotateTick();
 
     return {
       setCountries,
